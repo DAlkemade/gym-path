@@ -4,11 +4,10 @@ Copied from http://incompleteideas.net/sutton/book/code/pole.c
 permalink: https://perma.cc/C9ZM-652R
 """
 
-import math
 import gym
+import numpy as np
 from gym import spaces, logger
 from gym.utils import seeding
-import numpy as np
 from gym_path.bot import Bot
 from gym_path.coordination import Point
 from gym_path.path import Path
@@ -33,13 +32,16 @@ class PathEnv(gym.Env):
 
         self.maximum_error = maximum_error
         self.x_threshold = 2.4
+        self.path_window_size = 10
 
         action_limits = np.array([self.max_speed, self.max_rotational_vel])
         self.action_space = spaces.Box(-action_limits, action_limits)  # rotational and forward velocity
         border_offsets = np.array([self.x_threshold, self.x_threshold])
         # TODO think about what the observations should be. The path points? The next point to go to? Probably the first,
         # since the second it too easy, then it's just going to a point instead of path following
-        self.observation_space = spaces.Box(-border_offsets, border_offsets, dtype=np.float32)
+        max_point_distances = np.array([self.x_threshold * 2, self.x_threshold * 2])
+        self.observation_space = spaces.Box(low=np.array(list(-max_point_distances) * self.path_window_size),
+                                            high=np.array(list(max_point_distances) * self.path_window_size))
 
         self.seed()
         self.viewer = None
@@ -62,6 +64,7 @@ class PathEnv(gym.Env):
         self.bot.apply_action(u, w, self.tau)
 
         error_from_path = self.path.distance(self.bot.pose.location)
+        print(error_from_path)
         error_too_large = error_from_path > self.maximum_error
         goal_reached = self.path.goal_reached(self.bot.pose.location)
         self.done = error_too_large or goal_reached
@@ -72,19 +75,26 @@ class PathEnv(gym.Env):
         elif goal_reached:
             reward = 100.
         else:
-            reward = 0.  # Give reward for staying on path? Maybe define a certain distance under which it gets a reward
+            reward = 0.  # TODO Give reward for staying on path? Maybe define a certain distance under which it gets a reward
+            # Could also return a reward inversely proportional to the distance
+
+        observation = self.bot.get_future_path_in_local_coordinates(self.path)
+        assert self.observation_space.contains(np.array(observation)), "%r (%s) invalid" % (
+        observation, type(observation))
 
         # TODO what do we return as observation? Pose of robot and the path points? Or the points still to go? relative to the robot
-        return np.full((2, 2), -1), reward, self.done, {}
+        return observation, reward, self.done, {}
 
     def reset(self):
         # self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         # raise NotImplementedError()
         self.path = Path([Point(0, 0), Point(1.5, 0.5), Point(1.5, 1.0)])  # TODO make actual path
-        self.bot = Bot(0., 0., 0., self.kinematics_integrator)  # TODO spawn at beginning of track (with correct yaw?)
+        self.bot = Bot(0., 0., np.pi / 2, self.kinematics_integrator,
+                       self.path_window_size)  # TODO spawn at beginning of track (with correct yaw?)
         self.done = False
-        return None  # TODO what observation to return here
+        observations = self.bot.get_future_path_in_local_coordinates(self.path)
+        return observations  # TODO what observation to return here
 
     def render(self, mode='human'):
         screen_width = 600
@@ -105,7 +115,9 @@ class PathEnv(gym.Env):
             cart.add_attr(self.carttrans)
             self.viewer.add_geom(cart)
 
-            path = rendering.make_polyline([[point.x * scale + screen_width / 2.0, point.y * scale + screen_height / 2.0] for point in self.path.points])
+            screen_path_points = [[point.x * scale + screen_width / 2.0, point.y * scale + screen_height / 2.0] for
+                                  point in self.path.points]
+            path = rendering.make_polyline(screen_path_points)
             path.set_linewidth(4)
             self.viewer.add_geom(path)
 
@@ -134,8 +146,9 @@ if __name__ == "__main__":
         for t in range(100):
             env.render()
             action_to_take = env.action_space.sample()
-            # action_to_take[0] = abs(action_to_take[0]) # Only positive velocity
+            action_to_take[0] = abs(action_to_take[0])  # Only positive velocity
             observation, reward, done, info = env.step(action_to_take)
+            print(observation)
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break

@@ -12,4 +12,3 @@ register(
     id='CustomCartPole-v0',
     entry_point='gym_path.envs:CartPoleEnv',
 )
-

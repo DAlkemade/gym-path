@@ -24,11 +24,12 @@ class PathEnv(gym.Env):
         'video.frames_per_second': 50
     }
 
-    def __init__(self, maximum_error=.2):
+    def __init__(self, maximum_error=.25, goal_reached_threshold=.05):
         self.tau = 0.02  # seconds between state updates
         self.kinematics_integrator = 'euler'
         self.max_speed = 1.
-        self.max_rotational_vel = 1.
+        self.max_rotational_vel = 10.  # TODO handle this better
+        self.goal_reached_threshold = goal_reached_threshold
 
         self.maximum_error = maximum_error
         self.x_threshold = 2.4
@@ -72,15 +73,17 @@ class PathEnv(gym.Env):
         # TODO think about this true reward function
         if error_too_large:
             reward = -100.
+            print(f'Error too large, breaking off. Reward: {reward}')
         elif goal_reached:
             reward = 100.
+            print(f'Reach goal! Reward is {reward}')
         else:
             reward = 0.  # TODO Give reward for staying on path? Maybe define a certain distance under which it gets a reward
             # Could also return a reward inversely proportional to the distance
 
         observation = self.bot.get_future_path_in_local_coordinates(self.path)
         assert self.observation_space.contains(np.array(observation)), "%r (%s) invalid" % (
-        observation, type(observation))
+            observation, type(observation))
 
         # TODO what do we return as observation? Pose of robot and the path points? Or the points still to go? relative to the robot
         return observation, reward, self.done, {}
@@ -89,7 +92,11 @@ class PathEnv(gym.Env):
         # self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         # raise NotImplementedError()
-        self.path = Path([Point(0, 0), Point(1.5, 0.5), Point(1.5, 1.0)])  # TODO make actual path
+        xs = np.linspace(0., 2., 100)
+        points = [Point(x, np.sin(3 * x) * .45 + .1 * x) for x in xs]
+        self.path = Path(points, self.goal_reached_threshold)  # TODO make actual path
+        # self.path = Path([Point(0, 0), Point(1.5, 0.5), Point(1.5, 1.0)], self.goal_reached_threshold)  # TODO make actual path
+        # self.path = Path([Point(0, 0), Point(0, .2), Point(0, .3), Point(0, .5), Point(0, .65), Point(0, .75), Point(0, .9), Point(0, 1.)], self.goal_reached_threshold)  # TODO make actual path
         self.bot = Bot(0., 0., np.pi / 2, self.kinematics_integrator,
                        self.path_window_size)  # TODO spawn at beginning of track (with correct yaw?)
         self.done = False

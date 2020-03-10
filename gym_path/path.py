@@ -6,9 +6,8 @@ from gym_path.coordination import Point
 
 
 class Path(object):
-    def __init__(self, points: List[Point] = None):
-        if points is None:
-            points = []
+    def __init__(self, points: List[Point], goal_reached_distance: float):
+        self.goal_reached_distance = goal_reached_distance
         self.points = points
 
     def _distances(self, point: Point):
@@ -30,5 +29,5 @@ class Path(object):
 
     def goal_reached(self, point: Point) -> bool:
         """Return whether the point is within a certain distance of the final point on the path."""
-        logger.warn("PATH NOT IMPLEMENTED CORRECTLY")
-        return False
+        distance_to_goal = self._distances(point)[-1]
+        return distance_to_goal < self.goal_reached_distance

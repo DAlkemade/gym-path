@@ -10,6 +10,7 @@ from gym import spaces, logger
 from gym.utils import seeding
 import numpy as np
 from gym_path.bot import Bot
+from gym_path.coordination import Point
 from gym_path.path import Path
 
 
@@ -32,11 +33,10 @@ class PathEnv(gym.Env):
 
         self.maximum_error = maximum_error
         self.x_threshold = 2.4
-        self.arena_size = 4
 
         action_limits = np.array([self.max_speed, self.max_rotational_vel])
         self.action_space = spaces.Box(-action_limits, action_limits)  # rotational and forward velocity
-        border_offsets = np.array([self.arena_size / 2, self.arena_size / 2])
+        border_offsets = np.array([self.x_threshold, self.x_threshold])
         # TODO think about what the observations should be. The path points? The next point to go to? Probably the first,
         # since the second it too easy, then it's just going to a point instead of path following
         self.observation_space = spaces.Box(-border_offsets, border_offsets, dtype=np.float32)
@@ -81,7 +81,7 @@ class PathEnv(gym.Env):
         # self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         # raise NotImplementedError()
-        self.path = Path()
+        self.path = Path([Point(0, 0), Point(1.5, 0.5), Point(1.5, 1.0)])  # TODO make actual path
         self.bot = Bot(0., 0., 0., self.kinematics_integrator)  # TODO spawn at beginning of track (with correct yaw?)
         self.done = False
         return None  # TODO what observation to return here
@@ -104,6 +104,10 @@ class PathEnv(gym.Env):
             self.carttrans = rendering.Transform()
             cart.add_attr(self.carttrans)
             self.viewer.add_geom(cart)
+
+            path = rendering.make_polyline([[point.x * scale, point.y * scale] for point in self.path.points])
+            path.set_linewidth(4)
+            self.viewer.add_geom(path)
 
         if self.bot is None: return None
 

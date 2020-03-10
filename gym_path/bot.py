@@ -11,15 +11,17 @@ class Pose(object):
         self.yaw = yaw
 
 
+
+
 class Bot(object):
-    def __init__(self, pose: Pose, kinematics):
+    def __init__(self, x:float, y: float, yaw: float, kinematics):
         self.kinematics = kinematics
-        self.pose = pose
+        self.pose = Pose(x, y, yaw)
 
     def _update_pose_euler(self, u, w, dt):
         next_pose = Pose()
-        next_pose.x = self.pose.location.x + dt * u * np.cos(self.pose.yaw)
-        next_pose.y = self.pose.location.y + dt * u * np.sin(self.pose.yaw)
+        next_pose.location.x = self.pose.location.x + dt * u * np.cos(self.pose.yaw)
+        next_pose.location.y = self.pose.location.y + dt * u * np.sin(self.pose.yaw)
         next_pose.yaw = self.pose.yaw + dt * w
         self.pose = next_pose
 

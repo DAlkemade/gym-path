@@ -105,7 +105,7 @@ class PathEnv(gym.Env):
             cart.add_attr(self.carttrans)
             self.viewer.add_geom(cart)
 
-            path = rendering.make_polyline([[point.x * scale, point.y * scale] for point in self.path.points])
+            path = rendering.make_polyline([[point.x * scale + screen_width / 2.0, point.y * scale + screen_height / 2.0] for point in self.path.points])
             path.set_linewidth(4)
             self.viewer.add_geom(path)
 
@@ -115,7 +115,7 @@ class PathEnv(gym.Env):
         y = self.bot.pose.location.y
         yaw = self.bot.pose.yaw
         cartx = x * scale + screen_width / 2.0  # MIDDLE OF CART
-        carty = y * scale + screen_width / 2.0  # MIDDLE OF CART
+        carty = y * scale + screen_height / 2.0  # MIDDLE OF CART
         self.carttrans.set_translation(cartx, carty)
         self.carttrans.set_rotation(yaw)
 

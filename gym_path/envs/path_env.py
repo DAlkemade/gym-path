@@ -3,6 +3,7 @@ Classic cart-pole system implemented by Rich Sutton et al.
 Copied from http://incompleteideas.net/sutton/book/code/pole.c
 permalink: https://perma.cc/C9ZM-652R
 """
+from abc import abstractmethod
 
 import gym
 import numpy as np
@@ -14,7 +15,7 @@ from gym_path.coordination import Point
 from gym_path.path import Path
 
 
-class PathEnv(gym.Env):
+class PathEnvAbstract(gym.Env):
     """
     Loosely adapted from the standard cartpole environment.
     #TODO
@@ -25,7 +26,12 @@ class PathEnv(gym.Env):
         'video.frames_per_second': 50
     }
 
-    def __init__(self, maximum_error=.25, goal_reached_threshold=.2):
+    @abstractmethod
+    def create_path(self):
+        raise NotImplementedError()
+
+    def __init__(self, maximum_error=.25, goal_reached_threshold=.2, clean_viewer=False):
+        self.clean_viewer = clean_viewer
         self.tau = 0.02  # seconds between state updates
         self.kinematics_integrator = 'euler'
         self.max_speed = 1.
@@ -51,6 +57,7 @@ class PathEnv(gym.Env):
 
         self.path: Path = None  # TODO
         self.done = False
+        self.cumulative_run_error = None
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -67,6 +74,7 @@ class PathEnv(gym.Env):
         self.bot.apply_action(u, w, self.tau)
 
         error_from_path = self.path.distance(self.bot.pose.location)
+        self.cumulative_run_error += error_from_path
         error_too_large = error_from_path > self.maximum_error
         goal_reached = self.path.goal_reached(self.bot.pose.location)
         self.done = error_too_large or goal_reached
@@ -76,7 +84,7 @@ class PathEnv(gym.Env):
             reward = -100.
             print(f'Error too large, breaking off. Reward: {reward}')
         elif goal_reached:
-            reward = 1000000.
+            reward = 100000000 / self.cumulative_run_error
             # TODO higher reward for lower cumulative error? This incentives faster driving and staying on the path,
             # while still encouraging goint till the end
             print(f'Reached goal! Reward is {reward}')
@@ -92,19 +100,21 @@ class PathEnv(gym.Env):
     def reset(self):
         # self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
-        # raise NotImplementedError()
-        xs = np.linspace(0., 2., 100)
-        points = [Point(x, np.sin(3 * x) * .45 + .1 * x) for x in xs]
-        self.path = Path(points, self.goal_reached_threshold)  # TODO make actual path
+
+        self.path = self.create_path()
         # self.path = Path([Point(0, 0), Point(1.5, 0.5), Point(1.5, 1.0)], self.goal_reached_threshold)  # TODO make actual path
         # self.path = Path([Point(0, 0), Point(0, .2), Point(0, .3), Point(0, .5), Point(0, .65), Point(0, .75), Point(0, .9), Point(0, 1.)], self.goal_reached_threshold)  # TODO make actual path
         self.bot = Bot(0., 0., np.pi / 2, self.kinematics_integrator,
                        self.path_window_size)  # TODO spawn at beginning of track (with correct yaw?)
         self.done = False
+        self.cumulative_run_error = 0.
         observations = self.bot.get_future_path_in_local_coordinates(self.path)
+        if self.clean_viewer and self.viewer is not None:
+            self.viewer.geoms = []
         return observations  # TODO what observation to return here
 
     def render(self, mode='human'):
+        from gym.envs.classic_control import rendering
         screen_width = 600
         screen_height = 400
 
@@ -113,9 +123,9 @@ class PathEnv(gym.Env):
         cartwidth = 50.0
         cartheight = 30.0
 
-        if self.viewer is None:
-            from gym.envs.classic_control import rendering
-            self.viewer = rendering.Viewer(screen_width, screen_height)
+        if self.viewer is None or len(self.viewer.geoms) == 0:
+            if self.viewer is None:
+                self.viewer = rendering.Viewer(screen_width, screen_height)
             l, r, t, b = -cartwidth / 2, cartwidth / 2, cartheight / 2, -cartheight / 2
             axleoffset = cartheight / 4.0
             cart = rendering.FilledPolygon([(l, b), (l, t), (r, 0)])
@@ -145,6 +155,14 @@ class PathEnv(gym.Env):
         if self.viewer:
             self.viewer.close()
             self.viewer = None
+
+
+class PathEnv(PathEnvAbstract):
+
+    def create_path(self):
+        xs = np.linspace(0., 2., 100)
+        points = [Point(x, np.sin(3 * x) * .45 + .1 * x) for x in xs]
+        return Path(points, self.goal_reached_threshold)
 
 
 if __name__ == "__main__":

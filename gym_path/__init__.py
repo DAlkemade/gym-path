@@ -9,6 +9,6 @@ register(
     entry_point='gym_path.envs:PathExtensionEnv',
 )
 register(
-    id='CustomCartPole-v0',
-    entry_point='gym_path.envs:CartPoleEnv',
+    id='PathFollower-DifferentPaths-v0',
+    entry_point='gym_path.envs:PathEnvDifferentPaths',
 )

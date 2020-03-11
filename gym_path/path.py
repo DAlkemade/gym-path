@@ -15,7 +15,7 @@ class Path(object):
 
     def distance(self, point: Point) -> (float, int):
         """Return minimum distance from point to path."""
-        logger.warn("Distance function assumes very fine-grained path points")
+        logger.info("Distance function assumes very fine-grained path points")
         distances = self._distances(point)
         return np.min(distances)
 

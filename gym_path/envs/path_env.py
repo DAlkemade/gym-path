@@ -8,6 +8,7 @@ import gym
 import numpy as np
 from gym import spaces, logger
 from gym.utils import seeding
+
 from gym_path.bot import Bot
 from gym_path.coordination import Point
 from gym_path.path import Path
@@ -24,7 +25,7 @@ class PathEnv(gym.Env):
         'video.frames_per_second': 50
     }
 
-    def __init__(self, maximum_error=.25, goal_reached_threshold=.05):
+    def __init__(self, maximum_error=.25, goal_reached_threshold=.2):
         self.tau = 0.02  # seconds between state updates
         self.kinematics_integrator = 'euler'
         self.max_speed = 1.
@@ -33,16 +34,17 @@ class PathEnv(gym.Env):
 
         self.maximum_error = maximum_error
         self.x_threshold = 2.4
-        self.path_window_size = 10
+        self.path_window_size = 30
 
         action_limits = np.array([self.max_speed, self.max_rotational_vel])
-        self.action_space = spaces.Box(-action_limits, action_limits)  # rotational and forward velocity
-        border_offsets = np.array([self.x_threshold, self.x_threshold])
+        self.action_space = spaces.Box(-action_limits, action_limits,
+                                       dtype=np.float32)  # rotational and forward velocity
         # TODO think about what the observations should be. The path points? The next point to go to? Probably the first,
         # since the second it too easy, then it's just going to a point instead of path following
         max_point_distances = np.array([self.x_threshold * 2, self.x_threshold * 2])
         self.observation_space = spaces.Box(low=np.array(list(-max_point_distances) * self.path_window_size),
-                                            high=np.array(list(max_point_distances) * self.path_window_size))
+                                            high=np.array(list(max_point_distances) * self.path_window_size),
+                                            dtype=np.float32)
 
         self.seed()
         self.viewer = None
@@ -65,7 +67,6 @@ class PathEnv(gym.Env):
         self.bot.apply_action(u, w, self.tau)
 
         error_from_path = self.path.distance(self.bot.pose.location)
-        print(error_from_path)
         error_too_large = error_from_path > self.maximum_error
         goal_reached = self.path.goal_reached(self.bot.pose.location)
         self.done = error_too_large or goal_reached
@@ -75,17 +76,17 @@ class PathEnv(gym.Env):
             reward = -100.
             print(f'Error too large, breaking off. Reward: {reward}')
         elif goal_reached:
-            reward = 100.
-            print(f'Reach goal! Reward is {reward}')
+            reward = 1000000.
+            # TODO higher reward for lower cumulative error? This incentives faster driving and staying on the path,
+            # while still encouraging goint till the end
+            print(f'Reached goal! Reward is {reward}')
         else:
-            reward = 0.  # TODO Give reward for staying on path? Maybe define a certain distance under which it gets a reward
-            # Could also return a reward inversely proportional to the distance
+            reward = 0.
 
         observation = self.bot.get_future_path_in_local_coordinates(self.path)
         assert self.observation_space.contains(np.array(observation)), "%r (%s) invalid" % (
             observation, type(observation))
 
-        # TODO what do we return as observation? Pose of robot and the path points? Or the points still to go? relative to the robot
         return observation, reward, self.done, {}
 
     def reset(self):

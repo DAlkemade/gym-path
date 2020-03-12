@@ -50,12 +50,26 @@ class Bot(object):
 
 
 def feedback_linearized(pose, velocity, epsilon):
+    """Determine the forward and rotational velocity for differential drive robot using feedback linearization.
+
+    @param pose: position of holonomic point
+    @param velocity: velocity of holonomic point
+    @param epsilon: distance that the holonomic point is in front of the differential drive robot.
+    @return: forward velocity u and rotational velocity w
+    """
     u = velocity[X] * np.cos(pose[YAW]) + velocity[Y] * np.sin(pose[YAW])
     w = (1 / epsilon) * (-velocity[X] * np.sin(pose[YAW]) + velocity[Y] * np.cos(pose[YAW]))
     return u, w
 
 
 def get_velocity(position, path_points):
+    """Get velocity that a holonomic point at a position should have to track the path.
+
+    @param path_points: points of path in front of holonomic robot
+    @param position: position of holonomic point
+    @return: velocity v of holonomic point to track path
+    """
+    # TODO clean this method up
     v = np.zeros_like(position)
     if len(path_points) == 0:
         print("Reached goal 1")
@@ -84,7 +98,10 @@ def get_velocity(position, path_points):
 
 
 class FeedBackLinearizationBot(Bot):
+    """Bot that has a manual feedback linearized path-tracking algorithm built in."""
+
     def move_feedback_linearized(self, epsilon: float, path, num_states):
+        """Move bot using feedbacklinearization from a holonomic point at a distance epsilon in front of it."""
         observation_old = self.get_future_path_in_local_coordinates(path)
         path_points = np.reshape(observation_old, (int(num_states / 2), 2))
         # TODO think about the coordinates below

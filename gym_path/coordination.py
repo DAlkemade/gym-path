@@ -2,7 +2,7 @@ import numpy as np
 
 
 class Point():
-    def __init__(self, x, y):
+    def __init__(self, x: float, y: float):
         self.array = np.array([x, y])
 
     @property
@@ -23,6 +23,6 @@ class Point():
 
 
 class Pose(object):
-    def __init__(self, x=None, y=None, yaw=None):
+    def __init__(self, x: float, y: float, yaw=None):
         self.location = Point(x, y)
         self.yaw = yaw

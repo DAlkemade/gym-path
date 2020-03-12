@@ -169,9 +169,13 @@ class PathEnvAbstract(PathEnvShared):
 class PathEnv(PathEnvAbstract):
 
     def create_path(self):
-        xs = np.linspace(0., 2., 100)
-        points = [Point(x, np.sin(3 * x) * .45 + .1 * x) for x in xs]
-        return Path(points, self.goal_reached_threshold)
+        return create_constant_path(self.goal_reached_threshold)
+
+
+def create_constant_path(goal_reached_threshold: float):
+    xs = np.linspace(0., 2., 100)
+    points = [Point(x, np.sin(3 * x) * .45 + .1 * x) for x in xs]
+    return Path(points, goal_reached_threshold)
 
 
 def main():

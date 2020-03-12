@@ -11,7 +11,7 @@ class PathFeedbackLinearized(PathEnvShared):
     def __init__(self):
         super().__init__(clean_viewer=True)
         # TODO
-        self.action_space = spaces.Box(np.array([0.]), np.array([1.]), dtype=np.float32)  # length of epsilon/pole
+        self.action_space = spaces.Box(np.array([0.000001]), np.array([1.]), dtype=np.float32)  # length of epsilon/pole
 
     def create_path(self):
         return create_random_path(self.goal_reached_threshold)
@@ -31,14 +31,14 @@ class PathFeedbackLinearized(PathEnvShared):
         self.poletrans.set_rotation(1.)  # TODO
         super().render(extra_objects=[self.pole])
 
-    def step(self, action):
+    def step(self, action: np.array):
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
         if self.done:
             logger.warn(
                 "You are calling 'step()' even though this environment has already returned done = True. You should always call 'reset()' once you receive 'done = True' -- any further steps are undefined behavior.")
 
         # TODO use the feedback lin functions
-        epsilon_length: float = action
+        epsilon_length: float = action[0]
         num_states = len(self.observation_space.sample())
         self.bot.move_feedback_linearized(epsilon_length, self.path, num_states)
         observation = self.bot.get_future_path_in_local_coordinates(self.path)

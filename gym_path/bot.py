@@ -15,10 +15,13 @@ class Bot(object):
         self.path_window_size = path_window_size
 
     def _update_pose_euler(self, u, w, dt):
-        next_pose = Pose()
-        next_pose.location.x = self.pose.location.x + dt * u * np.cos(self.pose.yaw)
-        next_pose.location.y = self.pose.location.y + dt * u * np.sin(self.pose.yaw)
-        next_pose.yaw = self.pose.yaw + dt * w
+        next_x = self.pose.location.x + dt * u * np.cos(self.pose.yaw)
+        next_y = self.pose.location.y + dt * u * np.sin(self.pose.yaw)
+        next_yaw = self.pose.yaw + dt * w
+        assert type(next_x) is np.float64
+        assert type(next_y) is np.float64
+        assert type(next_yaw) is np.float64
+        next_pose = Pose(next_x, next_y, next_yaw)
         self.pose = next_pose
 
     def apply_action(self, u, w):
@@ -36,14 +39,17 @@ class Bot(object):
             try:
                 res.append(list(path_relative[i]))
             except IndexError:
-                res.append([0., 0.])
-        return list(np.array(res).flatten())
+                res.append(np.array([0., 0.], dtype=np.float32))
+        result = list(np.array(res).flatten())
+        return result
 
     def get_relative_position(self, absolute_position: Point):
         delta = absolute_position.array - self.pose.location.array
         theta = -1 * self.pose.yaw
         x = delta[0]
         y = delta[1]
+        assert type(x) is np.float64
+        assert type(y) is np.float64
         relative_position = [x * np.cos(theta) - y * np.sin(theta), x * np.sin(theta) + y * np.cos(theta)]
 
         return np.array(relative_position)

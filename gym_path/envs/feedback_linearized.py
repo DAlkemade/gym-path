@@ -12,23 +12,38 @@ class PathFeedbackLinearized(PathEnvShared):
         super().__init__(clean_viewer=True)
         # TODO
         self.action_space = spaces.Box(np.array([0.000001]), np.array([1.]), dtype=np.float32)  # length of epsilon/pole
+        self.latest_epsilon = None
 
     def create_path(self):
         return create_random_path(self.goal_reached_threshold)
 
     def render(self, mode='human', extra_objects: list = None):
         from gym.envs.classic_control import rendering
+        screen_width = 600
+        screen_height = 400
+
+        world_width = self.x_threshold * 2
+        scale = screen_width / world_width
+
+        length = self.latest_epsilon * scale
+        width = 5.
+        r, f, l, r = 0, length, width / 2, -width / 2
         if self.viewer is None:
-            width = 5.
-            height = 20.
-            l, r, t, b = -width / 2, width / 2, height / 2, -height / 2
-            self.pole = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
-            self.pole.v = [(l, b), (l, t), (r, t)]
+            self.pole = rendering.FilledPolygon([(r, r), (r, l), (f, l), (f, r)])
             self.poletrans = rendering.Transform()
             self.pole.add_attr(self.poletrans)
 
-        self.poletrans.set_translation(50., 100.)  # TODO
-        self.poletrans.set_rotation(1.)  # TODO
+        self.pole.v = [(r, r), (r, l), (f, l), (f, r)]
+
+        x = self.bot.pose.location.x
+        y = self.bot.pose.location.y
+        yaw = self.bot.pose.yaw
+        polex = x * scale + screen_width / 2.0  # MIDDLE OF CART
+        poley = y * scale + screen_height / 2.0  # MIDDLE OF CART
+        # polex = (x + .5* np.sin(self.latest_epsilon)) * scale + screen_width / 2.0  # MIDDLE OF CART
+        # poley = (y + .5 * np.cos(self.latest_epsilon)) * scale + screen_height / 2.0  # MIDDLE OF CART
+        self.poletrans.set_translation(polex, poley)  # TODO
+        self.poletrans.set_rotation(yaw)  # TODO
         super().render(extra_objects=[self.pole])
 
     def step(self, action: np.array):
@@ -39,6 +54,7 @@ class PathFeedbackLinearized(PathEnvShared):
 
         # TODO use the feedback lin functions
         epsilon_length: float = action[0]
+        self.latest_epsilon = epsilon_length
         num_states = len(self.observation_space.sample())
         self.bot.move_feedback_linearized(epsilon_length, self.path, num_states)
         observation = self.bot.get_future_path_in_local_coordinates(self.path)
@@ -50,29 +66,11 @@ class PathFeedbackLinearized(PathEnvShared):
     def reset(self):
         self.bot = FeedBackLinearizationBot(0., 0., np.pi / 2, self.kinematics_integrator,
                                             self.path_window_size, self.tau)
+        self.latest_epsilon = 0.
         # TODO add lineariazation stuff to inherited bot class
         return super().reset()
 
 
-# class PathFeedbackLinearized(PathEnvDifferentPaths):
-#
-#     def __init__(self):
-#         super().__init__()
-#         self.pole = None
-#
-#     def render(self, mode='human', extra_objects: list = None):
-#         from gym.envs.classic_control import rendering
-#         if self.viewer is None:
-#             width = 5.
-#             height = 20.
-#             l, r, t, b = -width / 2, width / 2, height / 2, -height / 2
-#             self.pole = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
-#             self.poletrans = rendering.Transform()
-#             self.pole.add_attr(self.poletrans)
-#
-#         self.poletrans.set_translation(50., 100.)  # TODO
-#         self.poletrans.set_rotation(1.)  # TODO
-#         super().render(extra_objects=[self.pole])
 def main():
     env = PathFeedbackLinearized()
     for i_episode in range(20):
@@ -80,12 +78,12 @@ def main():
         for t in range(200):
             env.render()
             action_to_take = env.action_space.sample()
-            print("%r (%s)" % (action_to_take, type(action_to_take)))
             observation, reward, done, info = env.step(action_to_take)
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
     env.close()
+
 
 if __name__ == "__main__":
     main()

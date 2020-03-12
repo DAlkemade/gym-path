@@ -59,13 +59,13 @@ class PathEnvShared(gym.Env):
 
         world_width = self.x_threshold * 2
         scale = screen_width / world_width
-        cartwidth = 50.0
-        cartheight = 30.0
+        length = 50.0
+        width = 30.0
 
         if self.viewer is None:
             self.viewer = rendering.Viewer(screen_width, screen_height)
-            l, r, t, b = -cartwidth / 2, cartwidth / 2, cartheight / 2, -cartheight / 2
-            cart = rendering.FilledPolygon([(l, b), (l, t), (r, 0)])
+            right, front, left, right = -length / 2, length / 2, width / 2, -width / 2
+            cart = rendering.FilledPolygon([(right, right), (right, left), (front, 0)])
             self.carttrans = rendering.Transform()
             cart.add_attr(self.carttrans)
             self.viewer.add_geom(cart)

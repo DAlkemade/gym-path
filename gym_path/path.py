@@ -2,6 +2,7 @@ from typing import List
 
 import numpy as np
 from gym import logger
+
 from gym_path.coordination import Point
 
 

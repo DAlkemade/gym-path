@@ -1,4 +1,5 @@
 import numpy as np
+
 from gym_path.coordination import Pose, Point
 from gym_path.path import Path
 
@@ -6,6 +7,7 @@ X = 0
 Y = 1
 YAW = 2
 SPEED = 1.
+
 
 class Bot(object):
     def __init__(self, x: float, y: float, yaw: float, kinematics: str, path_window_size: int, tau: float):

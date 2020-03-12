@@ -9,7 +9,6 @@ import gym
 import numpy as np
 from gym import spaces, logger
 from gym.utils import seeding
-
 from gym_path.bot import Bot
 from gym_path.coordination import Point
 from gym_path.path import Path
@@ -45,8 +44,6 @@ class PathEnvAbstract(gym.Env):
         action_limits = np.array([self.max_speed, self.max_rotational_vel])
         self.action_space = spaces.Box(-action_limits, action_limits,
                                        dtype=np.float32)  # rotational and forward velocity
-        # TODO think about what the observations should be. The path points? The next point to go to? Probably the first,
-        # since the second it too easy, then it's just going to a point instead of path following
         max_point_distances = np.array([self.x_threshold * 2, self.x_threshold * 2])
         self.observation_space = spaces.Box(low=np.array(list(-max_point_distances) * self.path_window_size),
                                             high=np.array(list(max_point_distances) * self.path_window_size),
@@ -85,7 +82,7 @@ class PathEnvAbstract(gym.Env):
             print(f'Error too large, breaking off. Reward: {reward}')
         elif goal_reached:
             reward = 100000000 / self.cumulative_run_error
-            # TODO higher reward for lower cumulative error? This incentives faster driving and staying on the path,
+            # higher reward for lower cumulative error? This incentives faster driving and staying on the path,
             # while still encouraging goint till the end
             print(f'Reached goal! Reward is {reward}')
         else:
@@ -102,16 +99,14 @@ class PathEnvAbstract(gym.Env):
         self.steps_beyond_done = None
 
         self.path = self.create_path()
-        # self.path = Path([Point(0, 0), Point(1.5, 0.5), Point(1.5, 1.0)], self.goal_reached_threshold)  # TODO make actual path
-        # self.path = Path([Point(0, 0), Point(0, .2), Point(0, .3), Point(0, .5), Point(0, .65), Point(0, .75), Point(0, .9), Point(0, 1.)], self.goal_reached_threshold)  # TODO make actual path
         self.bot = Bot(0., 0., np.pi / 2, self.kinematics_integrator,
-                       self.path_window_size)  # TODO spawn at beginning of track (with correct yaw?)
+                       self.path_window_size)
         self.done = False
         self.cumulative_run_error = 0.
         observations = self.bot.get_future_path_in_local_coordinates(self.path)
         if self.clean_viewer and self.viewer is not None:
-            self.viewer.geoms = []
-        return observations  # TODO what observation to return here
+            self.close()
+        return observations
 
     def render(self, mode='human'):
         from gym.envs.classic_control import rendering
@@ -123,11 +118,9 @@ class PathEnvAbstract(gym.Env):
         cartwidth = 50.0
         cartheight = 30.0
 
-        if self.viewer is None or len(self.viewer.geoms) == 0:
-            if self.viewer is None:
-                self.viewer = rendering.Viewer(screen_width, screen_height)
+        if self.viewer is None:
+            self.viewer = rendering.Viewer(screen_width, screen_height)
             l, r, t, b = -cartwidth / 2, cartwidth / 2, cartheight / 2, -cartheight / 2
-            axleoffset = cartheight / 4.0
             cart = rendering.FilledPolygon([(l, b), (l, t), (r, 0)])
             self.carttrans = rendering.Transform()
             cart.add_attr(self.carttrans)

@@ -12,3 +12,7 @@ register(
     id='PathFollower-DifferentPaths-v0',
     entry_point='gym_path.envs:PathEnvDifferentPaths',
 )
+register(
+    id='PathFollower-FeedbackLinearized-v0',
+    entry_point='gym_path.envs:PathFeedbackLinearized',
+)

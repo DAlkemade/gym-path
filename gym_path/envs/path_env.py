@@ -174,7 +174,7 @@ class PathEnv(PathEnvAbstract):
         return Path(points, self.goal_reached_threshold)
 
 
-if __name__ == "__main__":
+def main():
     env = PathEnv()
     for i_episode in range(20):
         env.reset()
@@ -188,3 +188,7 @@ if __name__ == "__main__":
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
     env.close()
+
+
+if __name__ == "__main__":
+    main()

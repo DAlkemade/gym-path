@@ -22,13 +22,14 @@ class PathFeedbackLinearized(PathEnvShared):
             width = 5.
             height = 20.
             l, r, t, b = -width / 2, width / 2, height / 2, -height / 2
-            pole = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
+            self.pole = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
+            self.pole.v = [(l, b), (l, t), (r, t)]
             self.poletrans = rendering.Transform()
-            pole.add_attr(self.poletrans)
+            self.pole.add_attr(self.poletrans)
 
         self.poletrans.set_translation(50., 100.)  # TODO
         self.poletrans.set_rotation(1.)  # TODO
-        super().render()
+        super().render(extra_objects=[self.pole])
 
     def step(self, action):
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
@@ -38,7 +39,7 @@ class PathFeedbackLinearized(PathEnvShared):
 
         # TODO use the feedback lin functions
         epsilon_length: float = action
-        num_states = len(env.observation_space.sample())
+        num_states = len(self.observation_space.sample())
         self.bot.move_feedback_linearized(epsilon_length, self.path, num_states)
         observation = self.bot.get_future_path_in_local_coordinates(self.path)
         assert self.observation_space.contains(np.array(observation)), "%r (%s) invalid" % (
@@ -72,18 +73,19 @@ class PathFeedbackLinearized(PathEnvShared):
 #         self.poletrans.set_translation(50., 100.)  # TODO
 #         self.poletrans.set_rotation(1.)  # TODO
 #         super().render(extra_objects=[self.pole])
-
-
-if __name__ == "__main__":
+def main():
     env = PathFeedbackLinearized()
     for i_episode in range(20):
         env.reset()
         for t in range(200):
             env.render()
             action_to_take = env.action_space.sample()
-            action_to_take[0] = abs(action_to_take[0])  # Only positive velocity
+            print("%r (%s)" % (action_to_take, type(action_to_take)))
             observation, reward, done, info = env.step(action_to_take)
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
     env.close()
+
+if __name__ == "__main__":
+    main()

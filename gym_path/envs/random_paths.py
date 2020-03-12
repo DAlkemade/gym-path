@@ -25,7 +25,8 @@ def create_random_path(goal_threshold: float):
     print(a, b, c)
     return Path(points, goal_threshold)
 
-if __name__ == "__main__":
+
+def main():
     env = PathEnvDifferentPaths()
     for i_episode in range(20):
         env.reset()
@@ -38,3 +39,7 @@ if __name__ == "__main__":
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
     env.close()
+
+
+if __name__ == "__main__":
+    main()

@@ -15,6 +15,7 @@ from gym_path.path import Path
 
 
 class PathEnvShared(gym.Env):
+    """Provides the based shared functionality for all environments in this package."""
     def __init__(self, clean_viewer, maximum_error=.25, goal_reached_threshold=.2):
         self.clean_viewer = clean_viewer
         self.tau = 0.02  # seconds between state updates
@@ -39,7 +40,7 @@ class PathEnvShared(gym.Env):
             self.viewer.close()
             self.viewer = None
 
-    def render(self, mode='human'):
+    def render(self, mode='human', extra_objects: list = None):
         from gym.envs.classic_control import rendering
         screen_width = 600
         screen_height = 400
@@ -62,6 +63,10 @@ class PathEnvShared(gym.Env):
             path = rendering.make_polyline(screen_path_points)
             path.set_linewidth(4)
             self.viewer.add_geom(path)
+
+            if extra_objects is not None:
+                for object in extra_objects:
+                    self.viewer.add_geom(object)
 
         if self.bot is None: return None
 

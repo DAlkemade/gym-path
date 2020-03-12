@@ -9,6 +9,7 @@ import gym
 import numpy as np
 from gym import spaces, logger
 from gym.utils import seeding
+
 from gym_path.bot import Bot
 from gym_path.coordination import Point
 from gym_path.path import Path
@@ -16,6 +17,12 @@ from gym_path.path import Path
 
 class PathEnvShared(gym.Env):
     """Provides the based shared functionality for all environments in this package."""
+
+    metadata = {
+        'render.modes': ['human', 'rgb_array'],
+        'video.frames_per_second': 50
+    }
+
     def __init__(self, clean_viewer, maximum_error=.25, goal_reached_threshold=.2):
         self.clean_viewer = clean_viewer
         self.tau = 0.02  # seconds between state updates
@@ -34,6 +41,11 @@ class PathEnvShared(gym.Env):
         self.done = False
         self.cumulative_run_error = None
         self.bot: Bot = None
+
+        max_point_distances = np.array([self.x_threshold * 2, self.x_threshold * 2])
+        self.observation_space = spaces.Box(low=np.array(list(-max_point_distances) * self.path_window_size),
+                                            high=np.array(list(max_point_distances) * self.path_window_size),
+                                            dtype=np.float32)
 
     def close(self):
         if self.viewer:
@@ -84,48 +96,12 @@ class PathEnvShared(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-
-class PathEnvAbstract(PathEnvShared):
-    """
-    Loosely adapted from the standard cartpole environment.
-    #TODO
-    """
-
-    metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 50
-    }
-
-    @abstractmethod
-    def create_path(self):
-        raise NotImplementedError()
-
-    def __init__(self, clean_viewer=False):
-        super().__init__(clean_viewer)
-        action_limits = np.array([self.max_speed, self.max_rotational_vel])
-        self.action_space = spaces.Box(-action_limits, action_limits,
-                                       dtype=np.float32)  # rotational and forward velocity
-        max_point_distances = np.array([self.x_threshold * 2, self.x_threshold * 2])
-        self.observation_space = spaces.Box(low=np.array(list(-max_point_distances) * self.path_window_size),
-                                            high=np.array(list(max_point_distances) * self.path_window_size),
-                                            dtype=np.float32)
-
-    def step(self, action: np.array):
-        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        if self.done:
-            logger.warn(
-                "You are calling 'step()' even though this environment has already returned done = True. You should always call 'reset()' once you receive 'done = True' -- any further steps are undefined behavior.")
-
-        u = action[0]
-        w = action[1]
-        self.bot.apply_action(u, w, self.tau)
-
+    def calc_reward(self):
         error_from_path = self.path.distance(self.bot.pose.location)
         self.cumulative_run_error += error_from_path
         error_too_large = error_from_path > self.maximum_error
         goal_reached = self.path.goal_reached(self.bot.pose.location)
         self.done = error_too_large or goal_reached
-
         # TODO think about this true reward function
         if error_too_large:
             reward = -100.
@@ -137,6 +113,46 @@ class PathEnvAbstract(PathEnvShared):
             print(f'Reached goal! Reward is {reward}')
         else:
             reward = 0.
+        return reward
+
+    def reset(self):
+        self.path = self.create_path()
+
+        self.done = False
+        self.cumulative_run_error = 0.
+        observations = self.bot.get_future_path_in_local_coordinates(self.path)
+        if self.clean_viewer:
+            self.close()
+        return observations
+
+    @abstractmethod
+    def create_path(self):
+        raise NotImplementedError()
+
+
+class PathEnvAbstract(PathEnvShared):
+    """
+    Loosely adapted from the standard cartpole environment.
+    #TODO
+    """
+
+    def __init__(self, clean_viewer=False):
+        super().__init__(clean_viewer)
+        action_limits = np.array([self.max_speed, self.max_rotational_vel])
+        self.action_space = spaces.Box(-action_limits, action_limits,
+                                       dtype=np.float32)  # rotational and forward velocity
+
+    def step(self, action: np.array):
+        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
+        if self.done:
+            logger.warn(
+                "You are calling 'step()' even though this environment has already returned done = True. You should always call 'reset()' once you receive 'done = True' -- any further steps are undefined behavior.")
+
+        u = action[0]
+        w = action[1]
+        self.bot.apply_action(u, w)
+
+        reward = self.calc_reward()
 
         observation = self.bot.get_future_path_in_local_coordinates(self.path)
         assert self.observation_space.contains(np.array(observation)), "%r (%s) invalid" % (
@@ -145,18 +161,9 @@ class PathEnvAbstract(PathEnvShared):
         return observation, reward, self.done, {}
 
     def reset(self):
-        # self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
-        self.steps_beyond_done = None
-
-        self.path = self.create_path()
         self.bot = Bot(0., 0., np.pi / 2, self.kinematics_integrator,
-                       self.path_window_size)
-        self.done = False
-        self.cumulative_run_error = 0.
-        observations = self.bot.get_future_path_in_local_coordinates(self.path)
-        if self.clean_viewer:
-            self.close()
-        return observations
+                       self.path_window_size, self.tau)
+        return super().reset()
 
 
 class PathEnv(PathEnvAbstract):

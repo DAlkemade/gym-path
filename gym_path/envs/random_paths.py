@@ -13,14 +13,17 @@ class PathEnvDifferentPaths(PathEnvAbstract):
         super().__init__(clean_viewer=True)
 
     def create_path(self):
-        xs = np.linspace(0., 2., 100)
-        a = random.random() * 3
-        b = random.random()
-        c = random.random()
-        points = [Point(x, np.sin(a * x) * b + c * x) for x in xs]
-        print(a, b, c)
-        return Path(points, self.goal_reached_threshold)
+        return create_random_path(self.goal_reached_threshold)
 
+
+def create_random_path(goal_threshold: float):
+    xs = np.linspace(0., 2., 100)
+    a = random.random() * 3
+    b = random.random()
+    c = random.random()
+    points = [Point(x, np.sin(a * x) * b + c * x) for x in xs]
+    print(a, b, c)
+    return Path(points, goal_threshold)
 
 if __name__ == "__main__":
     env = PathEnvDifferentPaths()

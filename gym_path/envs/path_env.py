@@ -14,7 +14,73 @@ from gym_path.coordination import Point
 from gym_path.path import Path
 
 
-class PathEnvAbstract(gym.Env):
+class PathEnvShared(gym.Env):
+    def __init__(self, clean_viewer, maximum_error=.25, goal_reached_threshold=.2):
+        self.clean_viewer = clean_viewer
+        self.tau = 0.02  # seconds between state updates
+        self.kinematics_integrator = 'euler'
+        self.max_speed = 1.
+        self.max_rotational_vel = 10.  # TODO handle this better
+        self.goal_reached_threshold = goal_reached_threshold
+
+        self.maximum_error = maximum_error
+        self.x_threshold = 2.4
+        self.path_window_size = 30
+        self.seed()
+        self.viewer = None
+
+        self.path: Path = None  # TODO
+        self.done = False
+        self.cumulative_run_error = None
+        self.bot: Bot = None
+
+    def close(self):
+        if self.viewer:
+            self.viewer.close()
+            self.viewer = None
+
+    def render(self, mode='human'):
+        from gym.envs.classic_control import rendering
+        screen_width = 600
+        screen_height = 400
+
+        world_width = self.x_threshold * 2
+        scale = screen_width / world_width
+        cartwidth = 50.0
+        cartheight = 30.0
+
+        if self.viewer is None:
+            self.viewer = rendering.Viewer(screen_width, screen_height)
+            l, r, t, b = -cartwidth / 2, cartwidth / 2, cartheight / 2, -cartheight / 2
+            cart = rendering.FilledPolygon([(l, b), (l, t), (r, 0)])
+            self.carttrans = rendering.Transform()
+            cart.add_attr(self.carttrans)
+            self.viewer.add_geom(cart)
+
+            screen_path_points = [[point.x * scale + screen_width / 2.0, point.y * scale + screen_height / 2.0] for
+                                  point in self.path.points]
+            path = rendering.make_polyline(screen_path_points)
+            path.set_linewidth(4)
+            self.viewer.add_geom(path)
+
+        if self.bot is None: return None
+
+        x = self.bot.pose.location.x
+        y = self.bot.pose.location.y
+        yaw = self.bot.pose.yaw
+        cartx = x * scale + screen_width / 2.0  # MIDDLE OF CART
+        carty = y * scale + screen_height / 2.0  # MIDDLE OF CART
+        self.carttrans.set_translation(cartx, carty)
+        self.carttrans.set_rotation(yaw)
+
+        return self.viewer.render(return_rgb_array=mode == 'rgb_array')
+
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
+
+class PathEnvAbstract(PathEnvShared):
     """
     Loosely adapted from the standard cartpole environment.
     #TODO
@@ -29,18 +95,8 @@ class PathEnvAbstract(gym.Env):
     def create_path(self):
         raise NotImplementedError()
 
-    def __init__(self, maximum_error=.25, goal_reached_threshold=.2, clean_viewer=False):
-        self.clean_viewer = clean_viewer
-        self.tau = 0.02  # seconds between state updates
-        self.kinematics_integrator = 'euler'
-        self.max_speed = 1.
-        self.max_rotational_vel = 10.  # TODO handle this better
-        self.goal_reached_threshold = goal_reached_threshold
-
-        self.maximum_error = maximum_error
-        self.x_threshold = 2.4
-        self.path_window_size = 30
-
+    def __init__(self, clean_viewer=False):
+        super().__init__(clean_viewer)
         action_limits = np.array([self.max_speed, self.max_rotational_vel])
         self.action_space = spaces.Box(-action_limits, action_limits,
                                        dtype=np.float32)  # rotational and forward velocity
@@ -48,17 +104,6 @@ class PathEnvAbstract(gym.Env):
         self.observation_space = spaces.Box(low=np.array(list(-max_point_distances) * self.path_window_size),
                                             high=np.array(list(max_point_distances) * self.path_window_size),
                                             dtype=np.float32)
-
-        self.seed()
-        self.viewer = None
-
-        self.path: Path = None  # TODO
-        self.done = False
-        self.cumulative_run_error = None
-
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
 
     def step(self, action: np.array):
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
@@ -104,50 +149,9 @@ class PathEnvAbstract(gym.Env):
         self.done = False
         self.cumulative_run_error = 0.
         observations = self.bot.get_future_path_in_local_coordinates(self.path)
-        if self.clean_viewer and self.viewer is not None:
+        if self.clean_viewer:
             self.close()
         return observations
-
-    def render(self, mode='human'):
-        from gym.envs.classic_control import rendering
-        screen_width = 600
-        screen_height = 400
-
-        world_width = self.x_threshold * 2
-        scale = screen_width / world_width
-        cartwidth = 50.0
-        cartheight = 30.0
-
-        if self.viewer is None:
-            self.viewer = rendering.Viewer(screen_width, screen_height)
-            l, r, t, b = -cartwidth / 2, cartwidth / 2, cartheight / 2, -cartheight / 2
-            cart = rendering.FilledPolygon([(l, b), (l, t), (r, 0)])
-            self.carttrans = rendering.Transform()
-            cart.add_attr(self.carttrans)
-            self.viewer.add_geom(cart)
-
-            screen_path_points = [[point.x * scale + screen_width / 2.0, point.y * scale + screen_height / 2.0] for
-                                  point in self.path.points]
-            path = rendering.make_polyline(screen_path_points)
-            path.set_linewidth(4)
-            self.viewer.add_geom(path)
-
-        if self.bot is None: return None
-
-        x = self.bot.pose.location.x
-        y = self.bot.pose.location.y
-        yaw = self.bot.pose.yaw
-        cartx = x * scale + screen_width / 2.0  # MIDDLE OF CART
-        carty = y * scale + screen_height / 2.0  # MIDDLE OF CART
-        self.carttrans.set_translation(cartx, carty)
-        self.carttrans.set_rotation(yaw)
-
-        return self.viewer.render(return_rgb_array=mode == 'rgb_array')
-
-    def close(self):
-        if self.viewer:
-            self.viewer.close()
-            self.viewer = None
 
 
 class PathEnv(PathEnvAbstract):

@@ -1,3 +1,5 @@
+from abc import ABCMeta, abstractmethod
+
 import numpy as np
 from gym import spaces, logger
 
@@ -6,16 +8,16 @@ from gym_path.envs.path_env import PathEnvShared
 from gym_path.envs.random_paths import create_random_path
 
 
-class PathFeedbackLinearized(PathEnvShared):
-
+class PathFeedbackLinearizedAbstract(PathEnvShared, metaclass=ABCMeta):
     def __init__(self):
         super().__init__(clean_viewer=True)
         # TODO
         self.action_space = spaces.Box(np.array([0.000001]), np.array([1.]), dtype=np.float32)  # length of epsilon/pole
         self.latest_epsilon = None
 
+    @abstractmethod
     def create_path(self):
-        return create_random_path(self.goal_reached_threshold)
+        pass
 
     def render(self, mode='human', extra_objects: list = None):
         from gym.envs.classic_control import rendering
@@ -69,6 +71,12 @@ class PathFeedbackLinearized(PathEnvShared):
         self.latest_epsilon = 0.
         # TODO add lineariazation stuff to inherited bot class
         return super().reset()
+
+
+class PathFeedbackLinearized(PathFeedbackLinearizedAbstract):
+
+    def create_path(self):
+        return create_random_path(self.goal_reached_threshold)
 
 
 def main():

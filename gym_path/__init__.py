@@ -12,3 +12,11 @@ register(
     id='PathFollower-FeedbackLinearized-v0',
     entry_point='gym_path.envs:PathFeedbackLinearized',
 )
+register(
+    id='PathFollower-FeedbackLinearizedTestSuite-v0',
+    entry_point='gym_path.envs:PathFeedbackLinearizedTestSuite',
+)
+register(
+    id='PathFollowerTestSuite-v0',
+    entry_point='gym_path.envs:PathEnvTestSuite',
+)

@@ -32,7 +32,7 @@ class PathEnvShared(gym.Env):
         self.goal_reached_threshold = goal_reached_threshold
 
         self.maximum_error = maximum_error
-        self.x_threshold = 2.4
+        self.x_threshold = 3.
         self.path_window_size = 30
         self.seed()
         self.viewer = None

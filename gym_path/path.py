@@ -24,7 +24,7 @@ class Path(object):
         distances = self._distances(point)
         return np.argmin(distances)
 
-    def find_future_points(self, point: Point):
+    def find_future_points(self, point: Point) -> list:
         closest_index = self._find_index_closest_point(point)
         return self.points[closest_index:]
 

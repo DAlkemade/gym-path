@@ -43,8 +43,8 @@ class PathEnvShared(gym.Env):
         self.bot: Bot = None
 
         max_point_distances = np.array([self.x_threshold * 2, self.x_threshold * 2])
-        self.observation_space = spaces.Box(low=np.array(list(-max_point_distances) * self.path_window_size),
-                                            high=np.array(list(max_point_distances) * self.path_window_size),
+        self.observation_space = spaces.Box(low=np.array((list(-max_point_distances) + [0]) * self.path_window_size),
+                                            high=np.array((list(max_point_distances) + [1]) * self.path_window_size),
                                             dtype=np.float32)
 
     def close(self):

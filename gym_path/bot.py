@@ -37,11 +37,15 @@ class Bot(object):
             path_relative.append(self.get_relative_position(point))
 
         res = []
+        valid = []
         for i in range(self.path_window_size):
             try:
-                res.append(list(path_relative[i]))
+                point = list(path_relative[i])
+                point_and_valid = point + [1.]
+                res.append(point_and_valid)
             except IndexError:
-                res.append(np.array([0., 0.], dtype=np.float32))
+                res.append(np.array([0., 0., 0.], dtype=np.float32))
+                valid.append(0)
         result = list(np.array(res).flatten())
         return result
 

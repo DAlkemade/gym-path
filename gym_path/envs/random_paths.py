@@ -1,7 +1,6 @@
 import random
 
 import numpy as np
-
 from gym_path.coordination import Point
 from gym_path.envs.path_env import PathEnvAbstract
 from gym_path.path import Path
@@ -17,12 +16,29 @@ class PathEnvDifferentPaths(PathEnvAbstract):
 
 
 def create_random_path(goal_threshold: float):
-    xs = np.linspace(0., 2., 100)
-    a = random.random() * 3
-    b = random.random()
-    c = random.random()
-    points = [Point(x, np.sin(a * x) * b + c * x) for x in xs]
-    print(a, b, c)
+    nr_points = 100
+    xs = np.linspace(0., 2., nr_points)
+    if random.random() < .5:
+        a = .1 * (random.random() - .5)
+        b = .1 * (random.random() - .5)
+        c = .1 * (random.random() - .5)
+        points = list()
+        last = 0
+        for i, x in enumerate(xs):
+            if i < nr_points / 3:
+                delta = a
+            elif i < 2 * nr_points / 3:
+                delta = b
+            else:
+                delta = c
+
+            last = last + delta
+            points.append(Point(x, last))
+    else:
+        a = random.random() * 3
+        b = random.random()
+        c = random.random()
+        points = [Point(x, np.sin(a * x) * b + c * x) for x in xs]
     return Path(points, goal_threshold)
 
 

@@ -143,6 +143,11 @@ class PathEnvAbstract(PathEnvShared):
                                        dtype=np.float32)  # rotational and forward velocity
 
     def step(self, action: np.array):
+        """Advance the environment with 1 step.
+
+        @param action: [forward velocity, rotational velocity]
+        @return: the new observation, reward, whether the run is done and extra info
+        """
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
         if self.done:
             logger.warn(

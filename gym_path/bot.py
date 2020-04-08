@@ -6,7 +6,6 @@ from gym_path.path import Path
 X = 0
 Y = 1
 YAW = 2
-SPEED = 1.
 
 
 class Bot(object):
@@ -74,7 +73,7 @@ def feedback_linearized(pose, velocity, epsilon):
     return u, w
 
 
-def get_velocity(position, path_points):
+def get_velocity(position, path_points, Kp: float):
     """Get velocity that a holonomic point at a position should have to track the path.
 
     @param path_points: points of path in front of holonomic robot
@@ -105,18 +104,18 @@ def get_velocity(position, path_points):
         return v
 
     delta = path_points[closest_point_index + 1] - position
-    v = SPEED * delta / np.linalg.norm(delta)
+    v = Kp * delta / np.linalg.norm(delta)
     return v
 
 
 class FeedBackLinearizationBot(Bot):
     """Bot that has a manual feedback linearized path-tracking algorithm built in."""
 
-    def move_feedback_linearized(self, epsilon: float, path, num_states):
+    def move_feedback_linearized(self, epsilon: float, path, num_states, Kp: float):
         """Move bot using feedbacklinearization from a holonomic point at a distance epsilon in front of it."""
         observation_old = self.get_future_path_in_local_coordinates(path)
         path_points = np.reshape(observation_old, (int(num_states / 2), 2))
         # TODO think about the coordinates below
-        velocity = get_velocity([epsilon, 0.], path_points)
+        velocity = get_velocity([epsilon, 0.], path_points, Kp)
         u, w = feedback_linearized([0., 0., 0.], velocity, epsilon)
         self.apply_action(u, w)

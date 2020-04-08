@@ -12,7 +12,7 @@ class PathFeedbackLinearizedAbstract(PathEnvShared, metaclass=ABCMeta):
     def __init__(self):
         super().__init__(clean_viewer=True)
         # TODO
-        self.action_space = spaces.Box(np.array([0.000001]), np.array([1.]), dtype=np.float32)  # length of epsilon/pole
+        self.action_space = spaces.Box(np.array([0.000001, 0.]), np.array([1., 1.]), dtype=np.float32)  # length of epsilon/pole
         self.latest_epsilon = None
 
     @abstractmethod
@@ -56,9 +56,10 @@ class PathFeedbackLinearizedAbstract(PathEnvShared, metaclass=ABCMeta):
 
         # TODO use the feedback lin functions
         epsilon_length: float = action[0]
+        kp: float = action[1]
         self.latest_epsilon = epsilon_length
         num_states = len(self.observation_space.sample())
-        self.bot.move_feedback_linearized(epsilon_length, self.path, num_states)
+        self.bot.move_feedback_linearized(epsilon_length, self.path, num_states, kp)
         observation = self.bot.get_future_path_in_local_coordinates(self.path)
         assert self.observation_space.contains(np.array(observation)), "%r (%s) invalid" % (
             observation, type(observation))

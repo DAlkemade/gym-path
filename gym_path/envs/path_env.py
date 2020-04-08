@@ -105,12 +105,12 @@ class PathEnvShared(gym.Env):
         # TODO think about this true reward function
         if error_too_large:
             reward = -100.
-            print(f'Error too large, breaking off. Reward: {reward}')
+            logger.debug(f'Error too large, breaking off. Reward: {reward}')
         elif goal_reached:
             reward = 100000000 / self.cumulative_run_error
             # higher reward for lower cumulative error? This incentives faster driving and staying on the path,
             # while still encouraging goint till the end
-            print(f'Reached goal! Reward is {reward}')
+            logger.debug(f'Reached goal! Reward is {reward}')
         else:
             reward = 0.
         return reward
@@ -194,7 +194,7 @@ def main():
             observation, reward, done, info = env.step(action_to_take)
             print(observation)
             if done:
-                print("Episode finished after {} timesteps".format(t + 1))
+                logger.debug("Episode finished after {} timesteps".format(t + 1))
                 break
     env.close()
 

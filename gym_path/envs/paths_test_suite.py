@@ -9,8 +9,8 @@ from gym_path.path import Path
 def generate_paths_test(goal_reached_threshold: float):
     #TODO instead of manually defining some, just make 30 straight lines, 30 sins and 30 hooked
     paths = list()
-    random.seed(30)
-    nr_per_category = 100
+    random.seed(26)
+    nr_per_category = 50
     for i in range(nr_per_category):
         paths.append(create_random_path(goal_reached_threshold, hooked=True))
     for i in range(nr_per_category):

@@ -1,18 +1,20 @@
+import random
+
 from gym_path.envs.feedback_linearized import PathFeedbackLinearizedAbstract
 from gym_path.envs.path_env import PathEnvAbstract
-from gym_path.envs.random_paths import generate_x_values, create_hooked_path, create_sin_path
+from gym_path.envs.random_paths import generate_x_values, create_hooked_path, create_sin_path, create_random_path
 from gym_path.path import Path
 
 
 def generate_paths_test(goal_reached_threshold: float):
     #TODO instead of manually defining some, just make 30 straight lines, 30 sins and 30 hooked
     paths = list()
-    xs = generate_x_values()
-    paths.append(Path(create_hooked_path(.0, .0, .0, xs), goal_reached_threshold))
-    paths.append(Path(create_hooked_path(.01, -.02, .03, xs), goal_reached_threshold))
-    paths.append(Path(create_sin_path(1., 1., 0., xs), goal_reached_threshold))
-    paths.append(Path(create_sin_path(3., 1., 0., xs), goal_reached_threshold))
-    paths.append(Path(create_sin_path(3., 1., 1., xs), goal_reached_threshold))
+    random.seed(30)
+    nr_per_category = 100
+    for i in range(nr_per_category):
+        paths.append(create_random_path(goal_reached_threshold, hooked=True))
+    for i in range(nr_per_category):
+        paths.append(create_random_path(goal_reached_threshold, hooked=False))
     return paths
 
 

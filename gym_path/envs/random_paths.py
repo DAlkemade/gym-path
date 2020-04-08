@@ -37,12 +37,12 @@ def create_hooked_path(a: float, b: float, c: float, xs: np.array):
 def generate_x_values():
     return np.linspace(0., 2., NR_POINTS)
 
-def create_random_path(goal_threshold: float):
+def create_random_path(goal_threshold: float, hooked=None) -> Path:
     xs = generate_x_values()
-    if random.random() < .5:
-        a = .1 * (random.random() - .5)
-        b = .1 * (random.random() - .5)
-        c = .1 * (random.random() - .5)
+    if (hooked is None and random.random() < .5) or hooked:
+        a = .05 * (random.random() - .5)
+        b = .05 * (random.random() - .5)
+        c = .05 * (random.random() - .5)
         points = create_hooked_path(a, b, c, xs)
     else:
         a = random.random() * 3

@@ -59,7 +59,7 @@ class PathFeedbackLinearizedAbstract(PathEnvShared, metaclass=ABCMeta):
         kp: float = action[1]
         self.latest_epsilon = epsilon_length
         num_states = len(self.observation_space.sample())
-        self.bot.move_feedback_linearized(epsilon_length, self.path, num_states, kp)
+        self.bot.move_feedback_linearized(epsilon_length, self.path, num_states, kp, len(self.action_space.sample()))
         observation = self.bot.get_future_path_in_local_coordinates(self.path)
         assert self.observation_space.contains(np.array(observation)), "%r (%s) invalid" % (
             observation, type(observation))

@@ -30,13 +30,9 @@ class Bot(object):
             self._update_pose_euler(u, w, self.tau)
 
     def get_future_path_in_local_coordinates(self, path: Path):
-        future_points = path.find_future_points(self.pose.location)
-        path_relative = []
-        for point in future_points:
-            path_relative.append(self.get_relative_position(point))
+        path_relative = self.get_local_path(path)
 
         res = []
-        valid = []
         for i in range(self.path_window_size):
             try:
                 point = list(path_relative[i])
@@ -44,9 +40,15 @@ class Bot(object):
                 res.append(point_and_valid)
             except IndexError:
                 res.append(np.array([0., 0., 0.], dtype=np.float32))
-                valid.append(0)
         result = list(np.array(res).flatten())
         return result
+
+    def get_local_path(self, path):
+        future_points = path.find_future_points(self.pose.location)
+        path_relative = []
+        for point in future_points:
+            path_relative.append(self.get_relative_position(point))
+        return path_relative
 
     def get_relative_position(self, absolute_position: Point):
         delta = absolute_position.array - self.pose.location.array
@@ -111,10 +113,10 @@ def get_velocity(position, path_points, Kp: float):
 class FeedBackLinearizationBot(Bot):
     """Bot that has a manual feedback linearized path-tracking algorithm built in."""
 
-    def move_feedback_linearized(self, epsilon: float, path, num_states, Kp: float):
+    def move_feedback_linearized(self, epsilon: float, path, num_states, Kp: float, state_dim: int):
         """Move bot using feedbacklinearization from a holonomic point at a distance epsilon in front of it."""
-        observation_old = self.get_future_path_in_local_coordinates(path)
-        path_points = np.reshape(observation_old, (int(num_states / 2), 2))
+        #TODO reshape is incorrect due to addition of the valid points
+        path_points = self.get_local_path(path)
         # TODO think about the coordinates below
         velocity = get_velocity([epsilon, 0.], path_points, Kp)
         u, w = feedback_linearized([0., 0., 0.], velocity, epsilon)
